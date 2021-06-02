@@ -2,7 +2,7 @@
 
 **This API is a simple method to create configuration**
 
-There are many [examples](https://github.com/lorisdemicheli/MC-Config/tree/main/src/test/java/org/github/lorisdemicheli/loader/examples)
+There are many [examples](https://github.com/lorisdemicheli/MC-Config/tree/main/src/test/java/com/github/lorisdemicheli/loader/examples)
 
 It's possible create a test plugin, download the repository and run maven build
 
