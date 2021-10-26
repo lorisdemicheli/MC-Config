@@ -36,11 +36,13 @@ class Main extends JavaPlugin {
 
 ```java
 @Entity
-@YmlFile(multiple = true,useDefaultPath = false)
+@YmlFile(path = "friends")
 public class PlayerType{
   @Id
   @Column
   private String uuid;
-  //... setter, getter and constructor without variables
+  @Column
+  private String name;
+  //... setter, getter and constructor
 }
 ```

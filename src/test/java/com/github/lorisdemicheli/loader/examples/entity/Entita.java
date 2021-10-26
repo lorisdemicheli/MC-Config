@@ -1,7 +1,9 @@
 package com.github.lorisdemicheli.loader.examples.entity;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.github.lorisdemicheli.loader.yaml.annotations.Entity;
 import com.github.lorisdemicheli.loader.yaml.annotations.Column;
@@ -15,10 +17,13 @@ public class Entita {
 	private String sesso;
 	@Column
 	private List<String> sopprannomi = new ArrayList<>();
+	@Column
+	private Map<String,Integer> map = new HashMap<>();
 	
 	public Entita(String animale, String sesso) {
 		this.animale = animale;
 		this.sesso = sesso;
+		map.put(animale, 3);
 	}
 	
 	public Entita() {}
@@ -41,7 +46,7 @@ public class Entita {
 
 	@Override
 	public String toString() {
-		return "Entity [animale=" + animale + ", sesso=" + sesso + ", sopprannomi=" + sopprannomi + "]";
+		return "Entity [animale=" + animale + ", sesso=" + sesso + ", sopprannomi=" + sopprannomi +", map=" + map + "]";
 	}
 	
 	public void setSopprannomi(List<String> sopprannomi) {

@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,11 +14,8 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 
+import com.github.lorisdemicheli.loader.Convert;
 import com.github.lorisdemicheli.loader.EntityManager;
-import com.github.lorisdemicheli.loader.yaml.annotations.Entity;
-import com.github.lorisdemicheli.loader.yaml.annotations.Column;
-import com.github.lorisdemicheli.loader.yaml.annotations.Id;
-import com.github.lorisdemicheli.loader.yaml.annotations.IgnoreSave;
 import com.github.lorisdemicheli.loader.yaml.annotations.YmlFile;
 
 public class YamlLoader implements EntityManager {
@@ -38,9 +34,9 @@ public class YamlLoader implements EntityManager {
 		YmlFile path = obj.getClass().getAnnotation(YmlFile.class);
 		File file;
 		String fileName = null;
-		if (path.multiple()) {
+		if (Convert.isMultiple(obj.getClass())) {
 			StringBuilder name = new StringBuilder();
-			for (Field field : multipleFields(obj.getClass())) {
+			for (Field field : Convert.multipleFields(obj.getClass())) {
 				field.setAccessible(true);
 				try {
 					name.append(field.get(obj).toString());
@@ -57,7 +53,7 @@ public class YamlLoader implements EntityManager {
 				fileName = obj.getClass().getSimpleName() + ".yml";
 			}
 		}
-		if (path.useDefaultPath()) {
+		if (path.path().trim().length() < 1) {
 			file = new File(plugin.getDataFolder(), fileName);
 		} else {
 			File dir = new File(plugin.getDataFolder(),path.path());
@@ -76,7 +72,7 @@ public class YamlLoader implements EntityManager {
 		}
 		FileConfiguration conf = YamlConfiguration.loadConfiguration(file);
 		try {
-			conf.createSection(className(obj.getClass()), save(conf.getValues(true), obj));
+			conf.createSection(Convert.className(obj.getClass()), save(conf.getValues(true), obj));
 		} catch (IllegalArgumentException | IllegalAccessException e) {
 			plugin.getLogger().log(Level.WARNING, e.getClass().getName(), e);
 			return false;
@@ -95,7 +91,7 @@ public class YamlLoader implements EntityManager {
 		YmlFile path = clazz.getAnnotation(YmlFile.class);
 		File file;
 		String fileName;
-		if (id.length > 0) {
+		if (id.length > 0 && Convert.isMultiple(clazz)) {
 			StringBuilder name = new StringBuilder();
 			for (Object obj : id) {
 				name.append(obj.toString());
@@ -109,7 +105,7 @@ public class YamlLoader implements EntityManager {
 				fileName = clazz.getSimpleName() + ".yml";
 			}
 		}
-		if (path.useDefaultPath()) {
+		if (path.path().trim().length() < 1) {
 			file = new File(plugin.getDataFolder(), fileName);
 		} else {
 			file = new File(new File(plugin.getDataFolder(),path.path()), fileName);
@@ -126,13 +122,13 @@ public class YamlLoader implements EntityManager {
 	private Map<String, Object> save(Map<String, Object> map, Object toSave)
 			throws IllegalArgumentException, IllegalAccessException {
 		for (Field field : toSave.getClass().getDeclaredFields()) {
-			if (checkField(field)) {
-				String pathName = fieldName(field);
+			if (Convert.processField(field)) {
+				String pathName = Convert.fieldName(field);
 				field.setAccessible(true);
 				Object valueToSave = field.get(toSave);
-				if (isCustomClass(field.getType())) {
+				if (Convert.isCustomClass(field.getType())) {
 					map.put(pathName, save(map, valueToSave));
-				} else if (isCustomList(field)) {
+				} else if (Convert.isCustomList(field)) {
 					List<?> list = (List<?>) field.get(toSave);
 					List<Map<?, ?>> mapToSave = new ArrayList<Map<?, ?>>();
 					for (Object obj : list) {
@@ -151,17 +147,17 @@ public class YamlLoader implements EntityManager {
 			throws IllegalArgumentException, IllegalAccessException, InstantiationException {
 		T instance = clazz.newInstance();
 		if (root == null) {
-			root = className(clazz) + ".";
+			root = Convert.className(clazz) + ".";
 		}
 		for (Field field : clazz.getDeclaredFields()) {
-			if (checkField(field)) {
+			if (Convert.processField(field)) {
 				Class<?> classField = field.getType();
-				String pathName = root + fieldName(field);
+				String pathName = root + Convert.fieldName(field);
 				field.setAccessible(true);
 				
-				if (isCustomClass(classField)) {
+				if (Convert.isCustomClass(classField)) {
 					field.set(instance, load(pathName, map, classField));
-				} else if (isCustomList(field)) {
+				} else if (Convert.isCustomList(field)) {
 					@SuppressWarnings("unchecked")
 					List<Map<String, Object>> list = (List<Map<String, Object>>) map.get(pathName);
 					List<Object> toLoad = new ArrayList<>();
@@ -178,60 +174,5 @@ public class YamlLoader implements EntityManager {
 			}
 		}
 		return instance;
-	}
-
-	private List<Field> multipleFields(Class<?> clazz) {
-		List<Field> fields = new ArrayList<>();
-		for (Field f : clazz.getDeclaredFields()) {
-			if (f.getAnnotation(Id.class) != null) {
-				fields.add(f);
-			}
-		}
-		return fields;
-	}
-
-	private boolean checkField(Field field) {
-		return field.getAnnotation(IgnoreSave.class) == null && field.getAnnotation(Column.class) != null;
-	}
-
-	private String className(Class<?> clazz) {
-		Entity ann = clazz.getAnnotation(Entity.class);
-		if (ann != null) {
-			String name = ann.name();
-			if (name.trim().length() > 0) {
-				return name;
-			} else {
-				return clazz.getSimpleName();
-			}
-		} else {
-			return null;
-		}
-	}
-
-	private String fieldName(Field f) {
-		Column ann = f.getAnnotation(Column.class);
-		if (ann != null) {
-			if (ann.name().length() > 0) {
-				return ann.name();
-			} else {
-				return f.getName();
-			}
-		} else {
-			return null;
-		}
-	}
-
-	private boolean isCustomClass(Class<?> clazz) {
-		return clazz.getAnnotation(Entity.class) != null;
-	}
-
-	private boolean isCustomList(Field f) {
-		if (f.getType().isInstance(Collections.emptyList())) {
-			ParameterizedType genericType = (ParameterizedType) f.getGenericType();
-			Class<?> elementType = (Class<?>) genericType.getActualTypeArguments()[0];
-			return elementType.getAnnotation(Entity.class) != null;
-		} else {
-			return false;
-		}
 	}
 }

@@ -15,7 +15,7 @@ import com.github.lorisdemicheli.loader.yaml.annotations.YmlFile;
 
 
 @Entity
-@YmlFile(multiple = true,path = "friends",useDefaultPath = false)
+@YmlFile(path = "friends")
 public class PlayerType{
 	
 	@IgnoreSave

@@ -9,8 +9,14 @@ import java.lang.annotation.Target;
 @Retention(RUNTIME)
 @Target(TYPE)
 public @interface YmlFile {
-	boolean useDefaultPath() default true;
+	/**
+	 * Path for file name
+	 * @return path
+	 */
 	String path() default "";
+	/**
+	 * File name/Table name 
+	 * @return fileName
+	 */
 	String fileName() default "";
-	boolean multiple() default false;
 }
